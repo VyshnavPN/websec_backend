@@ -2,25 +2,33 @@ const express = require('express');
 const Docker = require('dockerode');
 const cors = require('cors');
 
-const app = express(); // Connects to local Docker socket
-// Change this in your server.js
+const app = express();
+
+// Initialize Docker to use the host's socket (Railway DooD setup)
 const docker = new Docker({ socketPath: '/var/run/docker.sock' });
-app.use(cors({ origin: 'https://websec-c.vercel.app/' }));
+
+// FIX 1: Strict CORS (Remove trailing slash for better compatibility)
+app.use(cors({ 
+  origin: ['https://websec-c.vercel.app', 'http://localhost:5173'], // Added localhost for dev
+  methods: ['POST', 'GET'],
+  credentials: true
+}));
+
 app.use(express.json());
 
 app.post('/api/scan', async (req, res) => {
   const { target, tool, subtool } = req.body;
 
-  // 1. Security Check: Prevent command injection
+  // Security Check: Sanitizing the target input
   const safeTarget = target.replace(/[^a-zA-Z0-9.-]/g, '');
   
   try {
     let image = 'instrumentisto/nmap';
-    let cmd = ['-F', safeTarget]; // Default: Fast Nmap Scan
+    let cmd = ['-F', safeTarget]; 
 
     if (tool === 'recon') {
       if (subtool === 'whois') {
-        image = 'linuxserver/whois'; // Example image
+        image = 'linuxserver/whois'; 
         cmd = [safeTarget];
       } else if (subtool === 'dns') {
         image = 'busybox';
@@ -28,7 +36,7 @@ app.post('/api/scan', async (req, res) => {
       }
     }
 
-    // 2. Create the Docker Container
+    // Create the Docker Container
     const container = await docker.createContainer({
       Image: image,
       Cmd: cmd,
@@ -36,23 +44,27 @@ app.post('/api/scan', async (req, res) => {
       AttachStderr: true
     });
 
-    // 3. Start and stream logs back to React
+    // Start and stream logs
     await container.start();
     const stream = await container.logs({ follow: true, stdout: true, stderr: true });
 
-    // Set headers for streaming
+    // Stream headers
     res.setHeader('Content-Type', 'text/plain');
     res.setHeader('Transfer-Encoding', 'chunked');
 
     stream.pipe(res);
 
-    // 4. Cleanup: Remove container when done
-    container.wait(() => container.remove());
+    // Cleanup logic: Ensure container is removed after the scan finishes
+    container.wait(() => {
+      container.remove().catch(e => console.error("Cleanup Error:", e));
+    });
 
   } catch (err) {
-    console.error(err);
+    console.error("Execution Error:", err);
     res.status(500).send(`[SERVER_ERROR] ${err.message}`);
   }
 });
 
-app.listen(5000, () => console.log('WEBSEC_C2_SERVER: Running on port 5000'));
+// FIX 2: Dynamic Port for Railway
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`WEBSEC_C2_SERVER: Active on port ${PORT}`));
