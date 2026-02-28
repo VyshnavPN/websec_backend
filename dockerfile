@@ -1,4 +1,4 @@
-FROM node:20
+FROM node:20-alpine
 # Install the Docker CLI so the container can run docker commands
 RUN apt install -y docker.io
 WORKDIR /app
