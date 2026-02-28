@@ -8,10 +8,11 @@ const app = express();
 const docker = new Docker({ socketPath: '/var/run/docker.sock' });
 
 // FIX 1: Strict CORS (Remove trailing slash for better compatibility)
-app.use(cors({ 
-  origin: '*', // Allows ANY site to talk to your backend
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type']
+app.use(cors({
+  origin: true, // This reflects the origin of the request, making it highly compatible
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  credentials: true
 }));
 
 app.use(express.json());
