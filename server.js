@@ -9,9 +9,9 @@ const docker = new Docker({ socketPath: '/var/run/docker.sock' });
 
 // FIX 1: Strict CORS (Remove trailing slash for better compatibility)
 app.use(cors({ 
-  origin: ['https://websec-c.vercel.app', 'http://localhost:5173'], // Added localhost for dev
-  methods: ['POST', 'GET'],
-  credentials: true
+  origin: '*', // Allows ANY site to talk to your backend
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type']
 }));
 
 app.use(express.json());
