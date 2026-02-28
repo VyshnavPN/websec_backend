@@ -2,10 +2,10 @@ const express = require('express');
 const Docker = require('dockerode');
 const cors = require('cors');
 
-const app = express();
-const docker = new Docker(); // Connects to local Docker socket
-
-app.use(cors());
+const app = express(); // Connects to local Docker socket
+// Change this in your server.js
+const docker = new Docker({ socketPath: '/var/run/docker.sock' });
+app.use(cors({ origin: 'https://websec-c.vercel.app/' }));
 app.use(express.json());
 
 app.post('/api/scan', async (req, res) => {
