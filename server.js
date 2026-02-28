@@ -1,3 +1,7 @@
+// Add this immediately after 'const app = express();'
+app.get('/', (req, res) => {
+  res.status(200).send('C2_HEARTBEAT_ACTIVE');
+});
 const express = require('express');
 const Docker = require('dockerode');
 const cors = require('cors');
