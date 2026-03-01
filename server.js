@@ -44,6 +44,7 @@ app.post('/api/scan', async (req, res) => {
     res.status(500).send(`[ERROR] ${err.message}`);
   }
 });
-
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => console.log(`WEBSEC_C2_SERVER: Active on port ${PORT}`));
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`WEBSEC_C2_SERVER: Active on port ${PORT}`);
+});
