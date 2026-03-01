@@ -13,4 +13,6 @@ COPY . .
 # Railway uses a dynamic port, but we document 5000
 EXPOSE 5000
 
+USER root
+
 CMD ["node", "server.js"]
