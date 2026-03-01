@@ -3,6 +3,10 @@ const Docker = require('dockerode');
 const cors = require('cors');
 
 const app = express();
+// This tells Railway the server is healthy
+app.get('/', (req, res) => {
+  res.status(200).send('C2_HEARTBEAT_OK');
+});
 const docker = new Docker({ socketPath: '/var/run/docker.sock' });
 
 app.use(cors({ origin: '*', methods: ['GET', 'POST', 'OPTIONS'] }));
