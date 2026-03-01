@@ -4,34 +4,39 @@ const cors = require('cors');
 
 const app = express();
 
-// Initialize Docker with a timeout to catch socket errors early
+// Initialize Docker with a specific timeout for cloud environments
 const docker = new Docker({ 
   socketPath: '/var/run/docker.sock',
-  timeout: 2000 
+  timeout: 5000 
 });
 
 // Middleware: Open CORS for Vercel and Localhost testing
 app.use(cors({ origin: '*', methods: ['GET', 'POST', 'OPTIONS'] }));
 app.use(express.json());
 
-// Railway Health Check: Keeps the container from being killed (SIGTERM)
+// Railway Health Check: Keeps the container active (prevents SIGTERM)
 app.get('/', (req, res) => res.status(200).send('C2_HEARTBEAT_ACTIVE'));
 
 app.post('/api/scan', async (req, res) => {
   const { target, tool, subtool } = req.body;
   const safeTarget = target.replace(/[^a-zA-Z0-9.-]/g, '');
   
-  // Streaming headers for the React terminal
+  // Set headers for streaming the output to your React terminal
   res.setHeader('Content-Type', 'text/plain');
   res.setHeader('Transfer-Encoding', 'chunked');
 
+  res.write(`[PIPELINE] Initializing ${tool.toUpperCase()} sequence for ${safeTarget}...\n`);
+
   try {
-    // Check if the Docker socket is actually reachable
-    await docker.ping();
+    // Attempt to verify the Docker socket connection
+    res.write(`[SYSTEM] Attempting Handshake with /var/run/docker.sock...\n`);
+    await docker.ping(); 
+    res.write(`[SUCCESS] Connection Established. Spawning tool container...\n`);
 
     let image = 'instrumentisto/nmap';
     let cmd = ['-F', safeTarget]; 
 
+    // Additional tool logic (can be expanded)
     if (tool === 'recon') {
       if (subtool === 'whois') { image = 'linuxserver/whois'; cmd = [safeTarget]; }
       else if (subtool === 'dns') { image = 'busybox'; cmd = ['nslookup', safeTarget]; }
@@ -47,24 +52,28 @@ app.post('/api/scan', async (req, res) => {
     await container.start();
     const stream = await container.logs({ follow: true, stdout: true, stderr: true });
 
+    // Pipe the real-time container output back to the frontend
     stream.pipe(res);
 
+    // Cleanup: Remove container after the scan finishes
     container.wait(() => container.remove().catch(() => {}));
+
   } catch (err) {
-    // EMERGENCY FALLBACK: If Docker fails, simulate the scan for the UI
+    // PRINT ERROR TO TERMINAL (As requested)
+    res.write(`\n[FATAL_ERROR] C2_LINK_FAILED: ${err.message}\n`);
+    res.write(`[DEBUG] Check Railway Variables for RAILWAY_DOCKER_SOCKET.\n`);
+    res.write(`[DEBUG] Verify Dockerfile Path: websec-api/Dockerfile.\n`);
+
+    /* // FAKE SIMULATION PART (Commented out as requested)
     res.write(`[WARN] Docker Engine unreachable. Engaging Virtualization Bridge...\n`);
-    res.write(`[INFO] Simulating ${tool.toUpperCase()} scan on ${safeTarget}...\n\n`);
-    
     setTimeout(() => {
-      res.write(`Starting WebSec Engine v3.0 at ${new Date().toLocaleString()}\n`);
-      res.write(`Scan report for ${safeTarget}\n`);
-      res.write(`Host is UP.\n`);
-      res.write(`PORT    STATE    SERVICE\n`);
-      res.write(`80/tcp  OPEN     http\n`);
-      res.write(`443/tcp OPEN     https\n`);
-      res.write(`\n[SUCCESS] Virtual scan complete.\n`);
+      res.write(`Simulated scan report for ${safeTarget}\nHost is UP.\n`);
       res.end();
     }, 3000);
+    */
+
+    // Ensure the response ends if there is an error
+    res.end();
   }
 });
 
