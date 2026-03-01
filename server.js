@@ -3,11 +3,16 @@ const Docker = require('dockerode');
 const cors = require('cors');
 
 const app = express();
+
 // This tells Railway the server is healthy
 app.get('/', (req, res) => {
   res.status(200).send('C2_HEARTBEAT_OK');
 });
-const docker = new Docker({ socketPath: '/var/run/docker.sock' });
+// Replace your current docker line with this
+const docker = new Docker({ 
+  socketPath: '/var/run/docker.sock',
+  timeout: 5000 
+});
 
 app.use(cors({ origin: '*', methods: ['GET', 'POST', 'OPTIONS'] }));
 app.use(express.json());
@@ -44,6 +49,7 @@ app.post('/api/scan', async (req, res) => {
     res.status(500).send(`[ERROR] ${err.message}`);
   }
 });
+
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`WEBSEC_C2_SERVER: Active on port ${PORT}`);
