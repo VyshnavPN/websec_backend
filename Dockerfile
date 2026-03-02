@@ -1,11 +1,14 @@
-FROM node:20-alpine
+FROM node:18-alpine
 
-# Install the actual security tools directly into the container OS
+# Install system dependencies + Python tools
 RUN apk add --no-cache nmap whois bind-tools python3 py3-pip py3-requests
+
+# Install Sherlock via pip
+RUN pip install sherlock-project --break-system-packages
 
 WORKDIR /app
 COPY package*.json ./
-RUN npm install --only=production
+RUN npm install
 COPY . .
 
 EXPOSE 8080
