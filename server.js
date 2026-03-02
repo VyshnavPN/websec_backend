@@ -81,7 +81,9 @@ app.post('/api/scan', (req, res) => {
       return;
   }
 
-  res.write(`[EXEC] Running system binary for ${subtool || 'general'} task...\n\n`);
+  // label the execution stage with either the chosen subtool or the main tool
+  const execLabel = subtool || tool;
+  res.write(`[EXEC] Running system binary for ${execLabel} task...\n\n`);
 
   const child = exec(command);
 
