@@ -28,7 +28,8 @@ app.post('/api/scan', (req, res) => {
     case 'recon':
       // Force check for subtools first
       if (subtool === 'whois') {
-        command = `whois ${safeTarget}`;
+        const rootDomain = safeTarget.replace(/^www\./i, '');
+        command = `whois ${rootDomain}`;
       } else if (subtool === 'dns') {
         command = `host -a ${safeTarget}`;
       } else {
