@@ -9,6 +9,28 @@ app.use(express.json());
 
 app.get('/', (req, res) => res.status(200).send('C2_ENGINE_ONLINE'));
 
+// determine which python command is available; try common names
+const { spawnSync } = require('child_process');
+function choosePython() {
+  const candidates = [process.env.PYTHON, process.env.PYTHON_CMD, 'python3', 'python', 'py'];
+  for (const cmd of candidates) {
+    if (!cmd) continue;
+    try {
+      const r = spawnSync(cmd, ['--version'], { stdio: 'ignore' });
+      if (r.status === 0) {
+        console.log(`PYTHON_EXECUTABLE=${cmd}`);
+        return cmd;
+      }
+    } catch (_) {
+      // ignore
+    }
+  }
+  console.warn('No python interpreter found on PATH; exploit commands will fail.');
+  return candidates.find(Boolean) || 'python';
+}
+
+const pythonCmd = choosePython();
+
 app.post('/api/scan', (req, res) => {
   const { target, tool, subtool } = req.body;
   const safeTarget = target.replace(/[^a-zA-Z0-9.-]/g, '');
@@ -44,7 +66,10 @@ case 'recon':
 case 'exploit':
   // Ensure we provide a default 'headers' if subtool is missing
   const exploitType = subtool || 'headers';
-  command = `python3 exploits/scanner.py --target ${safeTarget} --type ${exploitType}`;
+  // on Windows the executable is usually "python"; on Unix/macOS we prefer
+  // python3.  allow an environment variable override as well.
+  const pyExec = pythonCmd; // discovered at startup
+  command = `${pyExec} exploits/scanner.py --target ${safeTarget} --type ${exploitType}`;
   break;
   }
 
