@@ -25,16 +25,18 @@ app.post('/api/scan', (req, res) => {
       command = `nmap -sT --unprivileged -F ${safeTarget}`;
       break;
       
-    case 'recon':
-      // Force check for subtools first
+case 'recon':
       if (subtool === 'whois') {
         const rootDomain = safeTarget.replace(/^www\./i, '');
-        command = `whois ${rootDomain} | grep -Ei "Domain Name:|Registrar:|Updated Date:|Creation Date:|Expiry Date:|Registrant Organization:|Name Server:|DNSSEC:"`;
+        // Filters for core ownership and registration dates only
+        command = `whois ${rootDomain} | grep -Ei "Domain Name:|Registrar:|Updated Date:|Creation Date:|Expiry Date:|Registrant Organization:|Name Server:|DNSSEC:" | head -n 20`;
       } else if (subtool === 'dns') {
-        command = `host -a ${safeTarget}`;
+        // -a fetches all, but we use grep to show ONLY the Answer Section (the actual records)
+        // We exclude the empty sections and headers for a cleaner UI
+        command = `host -a ${safeTarget} | grep -vE ";; |^$|Trying|Received"`;
       } else {
-        // Fallback if subtool is undefined or different
-        command = `nmap -sT --unprivileged -p 80,443,8080 ${safeTarget}`;
+        // Nmap: Keep as is, but hide the "Starting Nmap" header if you want it even cleaner
+        command = `nmap -sT --unprivileged -p 80,443,8080 ${safeTarget} | grep -vE "Starting Nmap|Nmap done|Other addresses"`;
       }
       break;
 
