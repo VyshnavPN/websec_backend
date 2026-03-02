@@ -29,7 +29,7 @@ app.post('/api/scan', (req, res) => {
       // Force check for subtools first
       if (subtool === 'whois') {
         const rootDomain = safeTarget.replace(/^www\./i, '');
-        command = `whois ${rootDomain}`;
+        command = `whois ${rootDomain} | grep -Ei "Domain Name:|Registrar:|Updated Date:|Creation Date:|Expiry Date:|Registrant Organization:|Name Server:|DNSSEC:"`;
       } else if (subtool === 'dns') {
         command = `host -a ${safeTarget}`;
       } else {
