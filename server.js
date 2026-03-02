@@ -47,7 +47,7 @@ app.post('/api/scan', (req, res) => {
       command = `nmap -sT --unprivileged -F ${safeTarget}`;
       break;
       
-case 'recon':
+    case 'recon':
       if (subtool === 'whois') {
         const rootDomain = safeTarget.replace(/^www\./i, '');
         // Filters for core ownership and registration dates only
@@ -62,15 +62,23 @@ case 'recon':
       }
       break;
 
-// websec_backend/server.js
-case 'exploit':
-  // Ensure we provide a default 'headers' if subtool is missing
-  const exploitType = subtool || 'headers';
-  // on Windows the executable is usually "python"; on Unix/macOS we prefer
-  // python3.  allow an environment variable override as well.
-  const pyExec = pythonCmd; // discovered at startup
-  command = `${pyExec} exploits/scanner.py --target ${safeTarget} --type ${exploitType}`;
-  break;
+    case 'exploit':
+      // Ensure we provide a default 'headers' if subtool is missing
+      const exploitType = subtool || 'headers';
+      const pyExec = pythonCmd; // discovered at startup
+      command = `${pyExec} exploits/scanner.py --target ${safeTarget} --type ${exploitType}`;
+      break;
+
+    case 'osint':
+      // osint module simply needs a target string too
+      command = `${pythonCmd} exploits/osint_engine.py --target ${safeTarget}`;
+      break;
+
+    default:
+      // if the tool isn't recognized we send a message and bail out
+      res.write(`[ERROR] Unknown tool: ${tool}\n`);
+      res.end();
+      return;
   }
 
   res.write(`[EXEC] Running system binary for ${subtool || 'general'} task...\n\n`);
