@@ -41,7 +41,7 @@ case 'recon':
       break;
 
     case 'exploit':
-      command = `python3 exploits/scanner.py --target ${safeTarget}`;
+      command = `python3 exploits/scanner.py --target ${safeTarget} --type ${subtool || 'headers'}`;
       break;
 
     default:
