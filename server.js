@@ -40,12 +40,12 @@ case 'recon':
       }
       break;
 
-    case 'exploit':
-      command = `python3 exploits/scanner.py --target ${safeTarget} --type ${subtool || 'headers'}`;
-      break;
-
-    default:
-      command = `echo "Error: Unknown operation."`;
+// websec_backend/server.js
+case 'exploit':
+  // Ensure we provide a default 'headers' if subtool is missing
+  const exploitType = subtool || 'headers';
+  command = `python3 exploits/scanner.py --target ${safeTarget} --type ${exploitType}`;
+  break;
   }
 
   res.write(`[EXEC] Running system binary for ${subtool || 'general'} task...\n\n`);
