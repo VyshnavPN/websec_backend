@@ -44,12 +44,8 @@ app.post('/api/scan', (req, res) => {
 
   switch (tool) {
     case 'audit':
-      // allow using the Nikto-based audit engine or a simple nmap quick scan
-      if (subtool === 'nikto' || subtool === 'engine') {
-        command = `${pythonCmd} exploits/audit_engine.py --target ${safeTarget}`;
-      } else {
-        command = `nmap -sT --unprivileged -F ${safeTarget}`;
-      }
+      // audit module only uses the Python-driven engine (nikto)
+      command = `${pythonCmd} exploits/audit_engine.py --target ${safeTarget}`;
       break;
       
     case 'recon':
