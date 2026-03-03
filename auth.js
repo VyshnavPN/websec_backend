@@ -1,7 +1,7 @@
-const express = require('express');
-const bcrypt = require('bcrypt');
-const { Low, JSONFile } = require('lowdb');
-const { nanoid } = require('nanoid');
+import express from 'express';
+import bcrypt from 'bcrypt';
+import { Low, JSONFile } from 'lowdb';
+import { nanoid } from 'nanoid';
 
 const router = express.Router();
 const adapter = new JSONFile('users.json');
@@ -98,4 +98,4 @@ router.post('/suggestions/delete', async (req, res) => {
   res.json({ status: 'ok' });
 });
 
-module.exports = router;
+export default router;

@@ -1,11 +1,11 @@
-const express = require('express');
-const cors = require('cors');
-const { exec } = require('child_process');
+import express from 'express';
+import cors from 'cors';
+import { exec, spawnSync } from 'child_process';
 
 const app = express();
 
 // authentication / RBAC routes
-const authRoutes = require('./auth');
+import authRoutes from './auth.js';
 app.use('/api', authRoutes);
 
 app.use(cors({ origin: '*', methods: ['GET', 'POST', 'OPTIONS'] }));
@@ -14,7 +14,6 @@ app.use(express.json());
 app.get('/', (req, res) => res.status(200).send('C2_ENGINE_ONLINE'));
 
 // determine which python command is available; try common names
-const { spawnSync } = require('child_process');
 function choosePython() {
   const candidates = [process.env.PYTHON, process.env.PYTHON_CMD, 'python3', 'python', 'py'];
   for (const cmd of candidates) {
