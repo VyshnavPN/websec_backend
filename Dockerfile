@@ -1,8 +1,17 @@
 FROM node:18-alpine
 
-# Install system dependencies + Nikto + Perl
-RUN apk add --no-cache nmap whois bind-tools python3 py3-pip nikto perl \
-    && nikto -Version || echo "[WARN] nikto test failed"
+# Use the edge community repository to ensure Nikto is found
+RUN apk update && \
+    apk add --no-cache \
+    nmap whois bind-tools python3 py3-pip perl perl-net-ssleay \
+    --repository=http://dl-cdn.alpinelinux.org/alpine/edge/community
+
+# Manually install Nikto if the package manager is being difficult
+RUN wget https://github.com/sullo/nikto/archive/master.tar.gz && \
+    tar -xf master.tar.gz && \
+    mv nikto-master/program /opt/nikto && \
+    ln -s /opt/nikto/nikto.pl /usr/bin/nikto && \
+    chmod +x /usr/bin/nikto
 
 WORKDIR /app
 COPY package*.json ./
