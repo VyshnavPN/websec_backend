@@ -1,7 +1,6 @@
 {
   "name": "websec-api",
   "version": "1.0.0",
-  "type": "module",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -14,9 +13,6 @@
   "dependencies": {
     "cors": "^2.8.6",
     "dockerode": "^4.0.9",
-    "express": "^5.2.1",
-    "bcrypt": "^6.0.0",
-    "lowdb": "^5.0.0",
-    "nanoid": "^5.1.6"
+    "express": "^5.2.1"
   }
 }
