@@ -3,7 +3,7 @@ FROM node:18-alpine
 # 1. Install system dependencies
 RUN apk update && \
     apk add --no-cache \
-    nmap whois bind-tools python3 py3-pip perl perl-net-ssleay \
+    nmap whois bind-tools python3 py3-pip perl perl-net-ssleay build-base \
     --repository=http://dl-cdn.alpinelinux.org/alpine/edge/community
 
 # 2. Resilient Manual Nikto Installation

@@ -4,6 +4,10 @@ const { exec } = require('child_process');
 
 const app = express();
 
+// authentication / RBAC routes
+const authRoutes = require('./auth');
+app.use('/api', authRoutes);
+
 app.use(cors({ origin: '*', methods: ['GET', 'POST', 'OPTIONS'] }));
 app.use(express.json());
 
