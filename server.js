@@ -1,39 +1,48 @@
 const express = require('express');
 const cors = require('cors');
-const { exec } = require('child_process');
+const { exec, spawnSync } = require('child_process');
+const path = require('path');
 
 const app = express();
 
+// Global Middleware
 app.use(cors({ origin: '*', methods: ['GET', 'POST', 'OPTIONS'] }));
 app.use(express.json());
 
-app.get('/', (req, res) => res.status(200).send('C2_ENGINE_ONLINE'));
+// Health Check for Render Deployment
+app.get('/', (req, res) => res.status(200).send('C2_ENGINE_ONLINE_v4.0'));
 
-// determine which python command is available; try common names
-const { spawnSync } = require('child_process');
+/**
+ * DEFENSIVE_PYTHON_DISCOVERY
+ * Ensures the engine finds the correct interpreter in the Linux container.
+ */
 function choosePython() {
-  const candidates = [process.env.PYTHON, process.env.PYTHON_CMD, 'python3', 'python', 'py'];
+  const candidates = [process.env.PYTHON, 'python3', 'python', 'py'];
   for (const cmd of candidates) {
     if (!cmd) continue;
     try {
       const r = spawnSync(cmd, ['--version'], { stdio: 'ignore' });
       if (r.status === 0) {
-        console.log(`PYTHON_EXECUTABLE=${cmd}`);
+        console.log(`[SYSTEM] PYTHON_EXECUTABLE_LOADED: ${cmd}`);
         return cmd;
       }
-    } catch (_) {
-      // ignore
-    }
+    } catch (_) {}
   }
-  console.warn('No python interpreter found on PATH; exploit commands will fail.');
-  return candidates.find(Boolean) || 'python';
+  return 'python3'; // Default for Render/Alpine
 }
 
 const pythonCmd = choosePython();
 
+/**
+ * MAIN_SCAN_ORCHESTRATOR
+ * Handles streaming telemetry from Python binaries to the 3D Dashboard.
+ */
 app.post('/api/scan', (req, res) => {
   const { target, tool, subtool } = req.body;
-  const safeTarget = target.replace(/[^a-zA-Z0-9.-]/g, '');
+
+  // IMPROVED REGEX: Removes protocol but PRESERVES slashes for path-based fuzzing
+  // Old: [^a-zA-Z0-9.-] (This was breaking your ASP.NET paths)
+  const safeTarget = target.replace(/^https?:\/\//, '').replace(/[^a-zA-Z0-9./_-]/g, '');
   
   res.setHeader('Content-Type', 'text/plain');
   res.setHeader('Transfer-Encoding', 'chunked');
@@ -44,66 +53,59 @@ app.post('/api/scan', (req, res) => {
 
   switch (tool) {
     case 'audit':
-      // audit module only uses the Python-driven engine (nikto)
+      // Calls the Nikto + Heuristic Fallback engine
       command = `${pythonCmd} exploits/audit_engine.py --target ${safeTarget}`;
       break;
       
     case 'recon':
       if (subtool === 'whois') {
-        const rootDomain = safeTarget.replace(/^www\./i, '');
-        // Filters for core ownership and registration dates only
-        command = `whois ${rootDomain} | grep -Ei "Domain Name:|Registrar:|Updated Date:|Creation Date:|Expiry Date:|Registrant Organization:|Name Server:|DNSSEC:" | head -n 20`;
+        const rootDomain = safeTarget.split('/')[0].replace(/^www\./i, '');
+        command = `whois ${rootDomain} | grep -Ei "Domain Name:|Registrar:|Creation Date:|Expiry Date:" | head -n 15`;
       } else if (subtool === 'dns') {
-        // -a fetches all, but we use grep to show ONLY the Answer Section (the actual records)
-        // We exclude the empty sections and headers for a cleaner UI
-        command = `host -a ${safeTarget} | grep -vE ";; |^$|Trying|Received"`;
+        command = `host -a ${safeTarget.split('/')[0]} | grep -vE ";; |^$|Trying|Received"`;
       } else {
-        // Nmap: Keep as is, but hide the "Starting Nmap" header if you want it even cleaner
-        command = `nmap -sT --unprivileged -p 80,443,8080 ${safeTarget} | grep -vE "Starting Nmap|Nmap done|Other addresses"`;
+        // Nmap Discovery
+        command = `nmap -sT --unprivileged -F ${safeTarget.split('/')[0]} | grep -vE "Starting Nmap|Nmap done"`;
       }
       break;
 
     case 'exploit':
-      // Ensure we provide a default 'headers' if subtool is missing
       const exploitType = subtool || 'headers';
-      const pyExec = pythonCmd; // discovered at startup
-      command = `${pyExec} exploits/scanner.py --target ${safeTarget} --type ${exploitType}`;
+      command = `${pythonCmd} exploits/scanner.py --target ${safeTarget} --type ${exploitType}`;
       break;
 
     case 'osint':
-      // osint module simply needs a target string too
       command = `${pythonCmd} exploits/osint_engine.py --target ${safeTarget}`;
       break;
 
     default:
-      // if the tool isn't recognized we send a message and bail out
-      res.write(`[ERROR] Unknown tool: ${tool}\n`);
+      res.write(`[ERROR] Unknown module: ${tool}\n`);
       res.end();
       return;
   }
 
-  // label the execution stage with either the chosen subtool or the main tool
   const execLabel = subtool || tool;
-  res.write(`[EXEC] Running system binary for ${execLabel} task...\n\n`);
+  res.write(`[EXEC] Spawning system process for ${execLabel}...\n\n`);
 
+  // Stream output to frontend
   const child = exec(command);
 
   child.stdout.on('data', (data) => res.write(data));
-  child.stderr.on('data', (data) => res.write(`[ERROR] ${data}`));
+  child.stderr.on('data', (data) => res.write(`[STDERR] ${data}`));
 
   child.on('close', (code) => {
     const status = (code === 0) ? "SUCCESS" : "FAILED";
-    res.write(`\n[${status}] Operation finalized (Exit Code: ${code})\n`);
+    res.write(`\n[${status}] Task finalized (Exit Code: ${code})\n`);
     res.end();
   });
 
   child.on('error', (err) => {
-    res.write(`[SYSTEM_ERROR] Execution failed.\n`);
+    res.write(`[SYSTEM_ERROR] Kernel-level execution failure.\n`);
     res.end();
   });
 });
 
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`C2_SERVER_ACTIVE: ${PORT}`);
+  console.log(`C2_SERVER_ACTIVE_ON_PORT: ${PORT}`);
 });
