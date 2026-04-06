@@ -1,10 +1,7 @@
-# Use a lightweight Alpine Linux image
+# Use lightweight Alpine Linux
 FROM alpine:3.18
 
 # 1. Install System Dependencies
-# python3: For your engines
-# nmap/whois: For recon module
-# wget/perl/openssl: Required for Nikto to function
 RUN apk add --no-cache \
     python3 \
     nmap \
@@ -17,7 +14,7 @@ RUN apk add --no-cache \
     npm \
     bash
 
-# 2. Manual Nikto Installation (Reliable Method)
+# 2. Resilient Manual Nikto Installation
 RUN wget https://github.com/sullo/nikto/archive/master.tar.gz && \
     tar -xf master.tar.gz && \
     mkdir -p /usr/local/bin/nikto_files && \
@@ -26,22 +23,20 @@ RUN wget https://github.com/sullo/nikto/archive/master.tar.gz && \
     chmod +x /usr/local/bin/nikto && \
     rm master.tar.gz
 
-# 3. Set Working Directory
+# 3. Setup App Directory
 WORKDIR /app
 
-# 4. Install Node.js Dependencies
+# 4. Install Node.js Backend Dependencies
 COPY package*.json ./
 RUN npm install --production
 
 # 5. Copy Application Source
-# This copies your 'exploits' folder, 'server.js', etc.
 COPY . .
 
 # 6. Final Permissions Check
 RUN chmod +x exploits/*.py
 
-# 7. Expose C2 Port
 EXPOSE 8080
 
-# 8. Launch Command
+# 7. Launch C2 Server
 CMD ["node", "server.js"]
