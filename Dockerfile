@@ -6,6 +6,11 @@ RUN apk update && \
     nmap whois bind-tools python3 py3-pip perl perl-net-ssleay \
     --repository=http://dl-cdn.alpinelinux.org/alpine/edge/community
 
+    # 2. Copy the requirements file into the container
+COPY requirements.txt .
+
+# 3. ACTUALLY INSTALL THE LIBRARY
+RUN pip install --no-cache-dir -r requirements.txt
 # 2. Resilient Manual Nikto Installation
 RUN wget https://github.com/sullo/nikto/archive/master.tar.gz && \
     tar -xf master.tar.gz && \
