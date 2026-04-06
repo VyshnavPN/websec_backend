@@ -15,13 +15,16 @@ RUN apk add --no-cache \
     bash
 
 # 2. Resilient Manual Nikto Installation
-RUN wget https://github.com/sullo/nikto/archive/master.tar.gz && \
-    tar -xf master.tar.gz && \
+# 2. Resilient Manual Nikto Installation
+RUN wget https://github.com/sullo/nikto/archive/master.tar.gz -O nikto.tar.gz && \
+    tar -xzf nikto.tar.gz && \
+    # Dynamically find the extracted folder regardless of its name
+    extracted_dir=$(ls -d nikto-*) && \
     mkdir -p /usr/local/bin/nikto_files && \
-    mv nikto-master/program/* /usr/local/bin/nikto_files/ && \
+    cp -r $extracted_dir/program/* /usr/local/bin/nikto_files/ && \
     ln -s /usr/local/bin/nikto_files/nikto.pl /usr/local/bin/nikto && \
     chmod +x /usr/local/bin/nikto && \
-    rm master.tar.gz
+    rm -rf $extracted_dir nikto.tar.gz
 
 # 3. Setup App Directory
 WORKDIR /app
